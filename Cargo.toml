@@ -1,7 +1,8 @@
 [workspace]
 members = [
-				"rgb", 
-				"board",
+	"rgb", 
+	"board",
+	"stream"
 ]
 
 [patch.crates-io]
