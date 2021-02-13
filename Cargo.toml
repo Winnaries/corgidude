@@ -1,0 +1,8 @@
+[workspace]
+members = [
+				"rgb", 
+				"board",
+]
+
+[patch.crates-io]
+k210-hal = { git = "https://github.com/riscv-rust/k210-hal.git", rev = "fdf1ad61af8f756765a65133bb2d08cda686be6f" }
