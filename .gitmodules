@@ -1,0 +1,3 @@
+[submodule "k210-hal"]
+	path = k210-hal
+	url = https://github.com/Winnaries/k210-hal.git
