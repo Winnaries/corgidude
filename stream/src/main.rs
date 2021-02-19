@@ -1,67 +1,83 @@
 #![no_std]
 #![no_main]
 
-use board::dvp::DVPExt;
-use board::fpioa::{self, function};
-use board::gpiohs;
-use board::sysctl;
-use board::{def::io, gpio::direction};
-use fpioa::pull;
-use k210_hal::{pac, prelude::*, stdout::Stdout};
+use dvp::DvpExt;
+use k210_hal::prelude::*;
+use k210_hal::stdout::Stdout;
+use k210_hal::{dvp, pac};
 use riscv_rt::entry;
 
-// Kendryte K210 = 400MHz
+mod init;
+mod ov2640;
+mod panic;
 
-fn dvp_init() {
-    fpioa::set_function(io::DVP_SDA, function::SCCB_SDA);
-    fpioa::set_function(io::DVP_SCL, function::SCCB_SCLK);
-    fpioa::set_function(io::DVP_RST, function::CMOS_RST);
-    fpioa::set_function(io::DVP_VSYNC, function::CMOS_VSYNC);
-    fpioa::set_function(io::DVP_HSYNC, function::CMOS_HREF);
-    fpioa::set_function(io::DVP_PWDN, function::CMOS_PWDN);
-    fpioa::set_function(io::DVP_XCLK, function::CMOS_XCLK);
-    fpioa::set_function(io::DVP_PCLK, function::CMOS_PCLK);
+const DISP_PIXELS: usize = 240 * 240;
 
-    sysctl::set_spi0_dvp_data(true);
+#[repr(C, align(64))]
+struct ScreenRAM {
+    pub image: [u32; DISP_PIXELS / 2],
 }
 
-fn lcd_init() {
-    fpioa::set_function(io::LCD_CS, function::SPI0_SS3);
-    fpioa::set_function(io::LCD_WR, function::SPI0_SCLK);
-    fpioa::set_function(io::LCD_DC, function::GPIOHS1);
-    fpioa::set_io_pull(io::LCD_DC, pull::DOWN);
-    fpioa::set_function(io::LCD_RST, function::GPIOHS2);
-    fpioa::set_io_pull(io::LCD_RST, pull::DOWN);
-
-    gpiohs::set_direction(1, direction::OUTPUT);
-    gpiohs::set_direction(2, direction::OUTPUT);
+impl ScreenRAM {
+    pub fn as_mut_ptr(&mut self) -> *mut u32 {
+        self.image.as_mut_ptr()
+    }
 }
 
-/**
- * @TODO:
- * 1. Configure DVP
- *  - Set the SCCB
- *  - Set XCLK rate
- *  - Set image format
- *  - Set image size
- */
+static mut FRAME: ScreenRAM = ScreenRAM {
+    image: [0; DISP_PIXELS / 2],
+};
 
 #[entry]
 fn main() -> ! {
     let p = pac::Peripherals::take().unwrap();
-    let clock = k210_hal::clock::Clocks::new();
 
+    // Freeze clocks frequency
+    let mut sysctl = p.SYSCTL.constrain();
+    let clock = sysctl.clocks();
+
+    // Configure UARTHS for debugging purpose
     let serial = p.UARTHS.configure((115_200 as u32).bps(), &clock);
     let (mut tx, _) = serial.split();
-
     let mut stdout = Stdout(&mut tx);
 
-    writeln!(stdout, "[dvp] initiating").unwrap();
-    dvp_init();
-    writeln!(stdout, "[lcd] initiating").unwrap();
-    lcd_init();
+    // Setup FPIOA
+    let fpioa = p.FPIOA.split(&mut sysctl.apb0);
+    init::io(fpioa);
 
-    let mut _dvp = p.DVP.constrain();
+    // Init DVP
+    let dvp = p.DVP.constrain();
+    dvp.init();
 
-    loop {}
+    // Testing SCCB interface and verifying device ID
+    let (mid, pid) = ov2640::read_id(&dvp);
+    writeln!(stdout, "[dvp] mid: {:02x}, pid: {:02x}", &mid, &pid).unwrap();
+
+    if mid != 0x7fa2 || pid != 0x2642 {
+        writeln!(stdout, "[dvp] manufacturer and product id mismatched").unwrap();
+        panic!()
+    }
+
+    writeln!(stdout, "[dvp] setting xclk rate").unwrap();
+    dvp.set_xclk_rate((24_000_000 as u32).hz(), &clock);
+
+    writeln!(stdout, "[dvp] setting image format").unwrap();
+    dvp.set_image_format(dvp::ImageFormat::RGB);
+
+    writeln!(stdout, "[dvp] setting image size").unwrap();
+    dvp.set_image_size(true, 240, 240);
+
+    writeln!(stdout, "[dvp] init OV2640 config").unwrap();
+    ov2640::init(&dvp);
+
+    writeln!(stdout, "[dvp] setting display address").unwrap();
+    dvp.set_display_addr(unsafe { Some(FRAME.as_mut_ptr()) });
+
+    loop {
+        dvp.get_image();
+        writeln!(stdout, "[dvp] sample output: {:?}", unsafe {
+            FRAME.image[500]
+        })
+        .unwrap();
+    }
 }

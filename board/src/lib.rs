@@ -3,7 +3,6 @@
 #![allow(non_camel_case_types)]
 
 pub mod def;
-pub mod dvp;
 pub mod fpioa;
 pub mod gpio;
 pub mod gpiohs;
