@@ -9,5 +9,4 @@ edition = "2018"
 [dependencies]
 riscv = "0.6"
 riscv-rt = "0.8"
-k210-hal = "0.2"
-board = { path = "../board"}
+k210-hal = { path = "../k210-hal" }
