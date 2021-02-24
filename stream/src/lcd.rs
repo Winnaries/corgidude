@@ -101,6 +101,7 @@ pub enum Command {
 
 #[repr(u8)]
 #[allow(dead_code)]
+#[allow(non_camel_case_types)]
 #[derive(Copy, Clone)]
 pub enum Direction {
     XY_RLUD = 0x00,

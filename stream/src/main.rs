@@ -12,7 +12,6 @@ use spi::Spi0Ext;
 mod init;
 mod lcd;
 mod ov2640;
-mod panic;
 
 const DISP_PIXELS: usize = 320 * 240;
 const COLOR: u32 = 0x00;
