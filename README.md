@@ -10,3 +10,7 @@ for this crate is to become an official `corgidude-hal` crate of embedded Rust.
 ### RGB 
 
 Simple GPIO and FPIOA testing via RGB led. 
+
+### Streaming
+
+Retrieving image from OV2640 via DVP peripheral and displays it on 240x240 screen using DMAC and SPI0.
