@@ -1,17 +1,21 @@
 #![no_std]
 #![no_main]
 
-use dvp::DvpExt;
+use k210_hal::dmac::{DmacChannel, DmacExt};
+use k210_hal::dvp::DvpExt;
 use k210_hal::prelude::*;
 use k210_hal::stdout::Stdout;
-use k210_hal::{dvp, pac};
+use k210_hal::{dvp, pac, spi};
 use riscv_rt::entry;
+use spi::Spi0Ext;
 
 mod init;
+mod lcd;
 mod ov2640;
 mod panic;
 
-const DISP_PIXELS: usize = 240 * 240;
+const DISP_PIXELS: usize = 320 * 240;
+const COLOR: u32 = 0x00;
 
 #[repr(C, align(64))]
 struct ScreenRAM {
@@ -25,7 +29,7 @@ impl ScreenRAM {
 }
 
 static mut FRAME: ScreenRAM = ScreenRAM {
-    image: [0; DISP_PIXELS / 2],
+    image: [COLOR; DISP_PIXELS / 2],
 };
 
 #[entry]
@@ -65,7 +69,10 @@ fn main() -> ! {
     dvp.set_image_format(dvp::ImageFormat::RGB);
 
     writeln!(stdout, "[dvp] setting image size").unwrap();
-    dvp.set_image_size(true, 240, 240);
+    dvp.set_image_size(true, 320, 240);
+
+    writeln!(stdout, "[dvp] disabling auto").unwrap();
+    dvp.set_auto(false);
 
     writeln!(stdout, "[dvp] init OV2640 config").unwrap();
     ov2640::init(&dvp);
@@ -73,11 +80,33 @@ fn main() -> ! {
     writeln!(stdout, "[dvp] setting display address").unwrap();
     dvp.set_display_addr(unsafe { Some(FRAME.as_mut_ptr()) });
 
+    writeln!(stdout, "[lcd] locking DMAC").unwrap();
+    let mut dmac = p.DMAC.constrain();
+
+    writeln!(stdout, "[lcd] initing DMAC").unwrap();
+    dmac.init();
+
+    writeln!(stdout, "[lcd] locking SPI0").unwrap();
+    let spi0 = p.SPI0.constrain(&mut sysctl.apb2);
+
+    writeln!(stdout, "[lcd] creating lcd instance").unwrap();
+    let mut lcd = lcd::Lcd::new(dmac, DmacChannel::Channel0, spi0, 3, 2, 3);
+
+    writeln!(stdout, "[lcd] flushing initial config").unwrap();
+    lcd.init(&clock);
+
+    // unsafe {
+    //     FRAME.image[0] = 0x1F;
+    //     FRAME.image[119] = 0x7E0 << 8;
+    //     FRAME.image[28680] = 0xF800;
+    //     FRAME.image[28799] = 0x7E0 << 8;
+    // }
+
+    writeln!(stdout, "[lcd] clearing the screen to {:04x}", &COLOR).unwrap();
+    lcd.set_image(unsafe { &FRAME.image });
+
     loop {
         dvp.get_image();
-        writeln!(stdout, "[dvp] sample output: {:?}", unsafe {
-            FRAME.image[500]
-        })
-        .unwrap();
+        lcd.set_image(unsafe { &FRAME.image });
     }
 }

@@ -17,8 +17,8 @@ pub fn io(fpioa: k210_hal::fpioa::Parts) {
     fpioa.io39.into_function(SPI0_SCLK);
     fpioa.io36.into_function(SPI0_SS3);
 
-    let mut hs1 = fpioa.io38.into_function(GPIOHS1);
-    let mut hs2 = fpioa.io37.into_function(GPIOHS2);
+    let mut hs1 = fpioa.io38.into_function(GPIOHS2); // dc
+    let mut hs2 = fpioa.io37.into_function(GPIOHS3); // rst
 
     hs1.set_io_pull(Pull::Down);
     hs2.set_io_pull(Pull::Down);
