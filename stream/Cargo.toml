@@ -10,4 +10,3 @@ edition = "2018"
 riscv = "0.6"
 riscv-rt = "0.8"
 k210-hal = { path = "../k210-hal" }
-board = { path = "../board" }

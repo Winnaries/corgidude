@@ -1,5 +1,3 @@
-use board::gpio;
-use board::gpiohs;
 use k210_hal::clock::Clocks;
 use k210_hal::dmac::{Dmac, DmacChannel};
 use k210_hal::gpiohs::GpiohsAccess;
@@ -143,13 +141,15 @@ impl Lcd {
     }
 
     fn init_rst(&mut self) {
-        gpiohs::set_direction(self.rs_gpio as u8, gpio::direction::OUTPUT);
-        gpiohs::set_pin(self.rs_gpio as u8, true);
+        GPIOHS::set_output_en(self.rs_gpio as usize, true);
+        GPIOHS::set_input_en(self.rs_gpio as usize, false);
+        GPIOHS::set_output_value(self.rs_gpio as usize, true);
     }
 
     fn init_dcx(&mut self) {
-        gpiohs::set_direction(self.dc_gpio as u8, gpio::direction::OUTPUT);
-        gpiohs::set_pin(self.dc_gpio as u8, true);
+        GPIOHS::set_output_en(self.dc_gpio as usize, true);
+        GPIOHS::set_input_en(self.dc_gpio as usize, false);
+        GPIOHS::set_output_value(self.dc_gpio as usize, true);
     }
 
     fn set_dcx_control(&mut self) {
