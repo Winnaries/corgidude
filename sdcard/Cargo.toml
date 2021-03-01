@@ -1,0 +1,15 @@
+[package]
+name = "sdcard"
+version = "0.1.0"
+authors = ["winnaries <w.winnaries@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+riscv = "0.6"
+riscv-rt = "0.8"
+nb = "0.1.1"
+embedded-sdmmc = "0.3"
+embedded-hal = "0.2.3"
+k210-hal = { path = "../k210-hal" }

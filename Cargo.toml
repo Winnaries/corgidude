@@ -1,6 +1,7 @@
 [workspace]
 members = [
 	"rgb", 
+	"sdcard", 
 	"board",
 	"stream", 
 	"k210-hal"
