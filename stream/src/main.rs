@@ -7,7 +7,7 @@ use k210_hal::prelude::*;
 use k210_hal::stdout::Stdout;
 use k210_hal::{dvp, pac, spi};
 use riscv_rt::entry;
-use spi::Spi0Ext;
+use spi::SpiExt;
 
 mod init;
 mod lcd;
@@ -94,13 +94,6 @@ fn main() -> ! {
 
     writeln!(stdout, "[lcd] flushing initial config").unwrap();
     lcd.init(&clock);
-
-    // unsafe {
-    //     FRAME.image[0] = 0x1F;
-    //     FRAME.image[119] = 0x7E0 << 8;
-    //     FRAME.image[28680] = 0xF800;
-    //     FRAME.image[28799] = 0x7E0 << 8;
-    // }
 
     writeln!(stdout, "[lcd] clearing the screen to {:04x}", &COLOR).unwrap();
     lcd.set_image(unsafe { &FRAME.image });

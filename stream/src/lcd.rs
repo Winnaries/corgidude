@@ -4,7 +4,7 @@ use k210_hal::gpiohs::GpiohsAccess;
 use k210_hal::pac::GPIOHS;
 use k210_hal::prelude::*;
 use k210_hal::sleep::usleep;
-use k210_hal::spi::{Spi, Spi0};
+use k210_hal::spi::{Spi, Spi01};
 
 const CLOCK_RATE: u32 = 18_000_000;
 
@@ -112,20 +112,20 @@ pub enum Direction {
     YX_LRDU = 0xE0,
 }
 
-pub struct Lcd {
+pub struct Lcd<SPI> {
     dmac: Dmac,
     channel: DmacChannel,
-    spi: Spi0,
+    spi: Spi<SPI>,
     cs_num: u8,
     dc_gpio: u32,
     rs_gpio: u32,
 }
 
-impl Lcd {
+impl<SPI: Spi01> Lcd<SPI> {
     pub fn new(
         dmac: Dmac,
         channel: DmacChannel,
-        spi: Spi0,
+        spi: Spi<SPI>,
         cs_num: u8,
         dc_gpio: u32,
         rs_gpio: u32,
@@ -178,9 +178,8 @@ impl Lcd {
             Aitm::AS_FRAME_FORMAT,
             Tmod::TRANS,
         );
-        self.spi
-            .send_data_dma(&mut self.dmac, self.channel, self.cs_num, &[cmd as u32]);
-        // .send_data(self.cs_num, &[cmd as u32]);
+        self.spi.set_slave_select(Some(self.cs_num));
+        self.spi.try_send(cmd as u32).unwrap();
     }
 
     fn write_byte(&mut self, buf: &[u32]) {
@@ -197,8 +196,10 @@ impl Lcd {
             Aitm::AS_FRAME_FORMAT,
             Tmod::TRANS,
         );
+        self.spi.set_slave_select(Some(self.cs_num));
         self.spi
-            .send_data_dma(&mut self.dmac, self.channel, self.cs_num, buf);
+            .send_data_dma(&mut self.dmac, self.channel, buf)
+            .unwrap();
     }
 
     pub fn set_area(&mut self, height: u32, width: u32) {
@@ -278,7 +279,9 @@ impl Lcd {
             Aitm::AS_FRAME_FORMAT,
             Tmod::TRANS,
         );
+        self.spi.set_slave_select(Some(self.cs_num));
         self.spi
-            .send_data_dma(&mut self.dmac, self.channel, self.cs_num, data);
+            .send_data_dma(&mut self.dmac, self.channel, data)
+            .unwrap();
     }
 }
