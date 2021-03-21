@@ -29,16 +29,16 @@ pub fn io(fpioa: k210_hal::fpioa::Parts) {
     fpioa.io37.into_function(GPIOHS3).set_io_pull(Pull::Down); // rs
 
     // SDMMC
-    // fpioa.io26.into_function(SPI1_D1);
-    // fpioa.io27.into_function(SPI1_SCLK);
-    // fpioa.io28.into_function(SPI1_D0);
-    // fpioa.io29.into_function(GPIOHS0).set_io_pull(Pull::Down); // sdc ss
+    fpioa.io26.into_function(SPI1_D1);
+    fpioa.io27.into_function(SPI1_SCLK);
+    fpioa.io28.into_function(SPI1_D0);
+    fpioa.io29.into_function(GPIOHS0).set_io_pull(Pull::Down); // sdc ss
 
-    // Logic Analyzer
-    fpioa.io15.into_function(SPI1_D1);
-    fpioa.io14.into_function(SPI1_SCLK);
-    fpioa.io13.into_function(SPI1_D0);
-    fpioa.io12.into_function(GPIOHS0).set_io_pull(Pull::Down);
+    // // Logic Analyzer
+    // fpioa.io15.into_function(SPI1_D1);
+    // fpioa.io14.into_function(SPI1_SCLK);
+    // fpioa.io13.into_function(SPI1_D0);
+    // fpioa.io12.into_function(GPIOHS0).set_io_pull(Pull::Down);
 
     // Include power mode selection in sysctl instead.
     unsafe {

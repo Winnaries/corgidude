@@ -4,7 +4,10 @@
 use k210_hal::dmac::{DmacChannel, DmacExt};
 use k210_hal::dvp::DvpExt;
 use k210_hal::prelude::*;
+use k210_hal::rtc::RtcExt;
+use k210_hal::sleep::usleep;
 use k210_hal::stdout::Stdout;
+use k210_hal::time::Hertz;
 use k210_hal::{dvp, pac, spi};
 use riscv_rt::entry;
 use spi::SpiExt;
@@ -42,27 +45,24 @@ static mut FRAME: ScreenRAM = ScreenRAM {
 fn main() -> ! {
     let p = pac::Peripherals::take().unwrap();
 
-    // Freeze clocks frequency
+    /* Enable PLL0 and freeze the clocks */
     let mut sysctl = p.SYSCTL.constrain();
+    sysctl.pll0.set_frequency(Hertz(800_000_000));
     let clock = sysctl.clocks();
 
-    // Configure UARTHS for debugging purpose
+    /* Setup default stdout for debugging */
     let serial = p.UARTHS.configure((115_200 as u32).bps(), &clock);
     let (mut tx, _) = serial.split();
     let mut stdout = Stdout(&mut tx);
 
-    // Setup FPIOA
+    /* Correct the FPIOA routing */
     let fpioa = p.FPIOA.split(&mut sysctl.apb0);
     init::io(fpioa);
 
-    // Init DVP
+    /* Configure DVP periperals */
     let dvp = p.DVP.constrain();
     dvp.init();
-
-    // Testing SCCB interface and verifying device ID
     let (mid, pid) = ov2640::read_id(&dvp);
-    writeln!(stdout, "[dvp] mid: {:02x}, pid: {:02x}", &mid, &pid).unwrap();
-
     if mid != 0x7fa2 || pid != 0x2642 {
         writeln!(stdout, "[dvp] manufacturer and product id mismatched").unwrap();
         panic!()
@@ -86,6 +86,7 @@ fn main() -> ! {
     writeln!(stdout, "[dvp] setting display address").unwrap();
     dvp.set_display_addr(unsafe { Some(FRAME.as_mut_ptr()) });
 
+    /* Configure LCD using with DMAC */
     writeln!(stdout, "[lcd] locking DMAC").unwrap();
     let mut dmac = p.DMAC.constrain();
 
@@ -104,13 +105,24 @@ fn main() -> ! {
     writeln!(stdout, "[lcd] clearing the screen to {:04x}", &COLOR).unwrap();
     lcd.set_image(unsafe { &FRAME.image });
 
+    /* Configuring SD Card interface */
     let spi1 = p.SPI1.constrain(&mut sysctl.apb2);
     let gpio0 = p.GPIOHS.split().gpiohs0.into_output();
     let mut sdcard = sdcard::SdCard::new(spi1, gpio0);
     sdcard.init(&clock);
 
+    /* Configuring real-time clock */
+    let mut rtc = p.RTC.constrain(&mut sysctl.apb1);
+    rtc.init(&clock);
+    rtc.timer_set(2001, 5, 28, 20, 21, 00, &clock).unwrap();
+
+    usleep(20_500_000);
+
+    let datetime = rtc.timer_get().unwrap();
+    writeln!(stdout, "{:?}", datetime).unwrap();
+
     loop {
         dvp.get_image();
-        // lcd.set_image(unsafe { &FRAME.image });
+        lcd.set_image(unsafe { &FRAME.image });
     }
 }
