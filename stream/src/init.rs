@@ -23,6 +23,20 @@ pub fn io(fpioa: k210_hal::fpioa::Parts) {
     hs1.set_io_pull(Pull::Down);
     hs2.set_io_pull(Pull::Down);
 
+    // Channel 0 = FPIO15
+    // Channel 1 = FPIO14
+    // Channel 2 = FPIO13
+    // Channel 3 = FPIO12
+    // Channel 4 = FPIO11
+
+    fpioa.io15.into_function(SPI0_D0);
+    fpioa.io14.into_function(SPI0_D1);
+    fpioa.io13.into_function(SPI0_SCLK);
+    fpioa.io12.into_function(SPI0_SS3);
+
+    let mut hs3 = fpioa.io11.into_function(GPIOHS2); // dc
+    hs3.set_io_pull(Pull::Down);
+
     // Include power mode selection in sysctl instead.
     unsafe {
         let ptr = pac::SYSCTL::ptr();
