@@ -1,9 +1,7 @@
 #![no_std]
 #![no_main]
 
-use core::str::FromStr;
-
-use embedded_sdmmc::{Controller, Mode, VolumeIdx};
+use embedded_sdmmc::{Controller, VolumeIdx};
 use k210_hal::dmac::{DmacChannel, DmacExt};
 use k210_hal::dvp::DvpExt;
 use k210_hal::prelude::*;
@@ -117,12 +115,12 @@ fn main() -> ! {
     /* Configuring real-time clock */
     let mut rtc = p.RTC.constrain(&mut sysctl.apb1);
     rtc.init(&clock);
-    rtc.timer_set(2020, 3, 21, 20, 47, 00, &clock).unwrap();
+    rtc.timer_set(2021, 3, 21, 20, 47, 00, &clock).unwrap();
     let rtc = rtc_source::RtcSource::new(rtc);
 
     let mut sd = Controller::new(sdcard, rtc);
 
-    let mut volume = sd.get_volume(VolumeIdx(0)).unwrap();
+    let volume = sd.get_volume(VolumeIdx(0)).unwrap();
     let root = sd.open_root_dir(&volume).unwrap();
     let central = sd.open_dir(&volume, &root, "1");
 
