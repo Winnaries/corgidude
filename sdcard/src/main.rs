@@ -1,6 +1,7 @@
 #![no_std]
 #![no_main]
 
+use embedded_sdmmc::Controller;
 use k210_hal::dmac::{DmacChannel, DmacExt};
 use k210_hal::dvp::DvpExt;
 use k210_hal::prelude::*;
