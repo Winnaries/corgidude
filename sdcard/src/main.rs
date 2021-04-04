@@ -1,25 +1,23 @@
 #![no_std]
 #![no_main]
 
-use embedded_sdmmc::Controller;
+// use embedded_sdmmc::SdMmcSpi;
 use k210_hal::dmac::{DmacChannel, DmacExt};
 use k210_hal::dvp::DvpExt;
 use k210_hal::prelude::*;
+// use k210_hal::spi::{Aitm, FrameFormat, Tmod, WorkMode};
 use k210_hal::stdout::Stdout;
 use k210_hal::{dvp, pac, spi};
 use riscv_rt::entry;
 use spi::SpiExt;
+// use wrapper::{GpiohsWrapper, SpiWrapper};
 
 mod init;
 mod lcd;
 mod ov2640;
 mod panic;
 mod sdcard;
-
-// TODO
-// 1. Fix up the SPI interface
-// 2. Implement SD card interface
-// 3. Get to write the text file through the DMA
+mod wrapper;
 
 const DISP_PIXELS: usize = 320 * 240;
 const COLOR: u32 = 0x00;
@@ -93,22 +91,56 @@ fn main() -> ! {
     writeln!(stdout, "[lcd] initing DMAC").unwrap();
     dmac.init();
 
-    writeln!(stdout, "[lcd] locking SPI0").unwrap();
-    let spi0 = p.SPI0.constrain(&mut sysctl.apb2);
+    // writeln!(stdout, "[lcd] locking SPI0").unwrap();
+    // let spi0 = p.SPI0.constrain(&mut sysctl.apb2);
 
-    writeln!(stdout, "[lcd] creating lcd instance").unwrap();
-    let mut lcd = lcd::Lcd::new(dmac, DmacChannel::Channel0, spi0, 3, 2, 3);
+    // writeln!(stdout, "[lcd] creating lcd instance").unwrap();
+    // let mut lcd = lcd::Lcd::new(dmac, DmacChannel::Channel0, spi0, 3, 2, 3);
 
-    writeln!(stdout, "[lcd] flushing initial config").unwrap();
-    lcd.init(&clock);
+    // writeln!(stdout, "[lcd] flushing initial config").unwrap();
+    // lcd.init(&clock);
 
-    writeln!(stdout, "[lcd] clearing the screen to {:04x}", &COLOR).unwrap();
-    lcd.set_image(unsafe { &FRAME.image });
+    // writeln!(stdout, "[lcd] clearing the screen to {:04x}", &COLOR).unwrap();
+    // lcd.set_image(unsafe { &FRAME.image });
 
+    // writeln!(stdout, "[sdc] constraining GPIOHS1").unwrap();
+    // let gpiohs0 = p.GPIOHS.split().gpiohs0.into_output();
+    // let gpiohs0 = GpiohsWrapper { gpiohs: gpiohs0 };
+
+    writeln!(stdout, "[sdc] constraining SPI1").unwrap();
     let spi1 = p.SPI1.constrain(&mut sysctl.apb2);
-    let gpio0 = p.GPIOHS.split().gpiohs0.into_output();
-    let mut sdcard = sdcard::SdCard::new(spi1, gpio0);
-    sdcard.init(&clock);
+    // let mut spi1 = SpiWrapper { spi: spi1 };
+
+    writeln!(stdout, "sdcard: pre-init").unwrap();
+    let mut sd = sdcard::SDCard::new(spi1, 0, 7, &mut dmac, DmacChannel::Channel1);
+    let info = sd.init(&clock).unwrap();
+    writeln!(stdout, "card info: {:?}", info).unwrap();
+    let num_sectors = info.CardCapacity / 512;
+    writeln!(stdout, "number of sectors on card: {}", num_sectors).unwrap();
+
+    // writeln!(stdout, "[sdc] configuring SPI1 Clock rate").unwrap();
+    // spi1.set_clk_rate(380000.hz(), &clock);
+    // spi1.set_slave_select(Some(0 /* dummy */));
+    // spi1.configure(
+    //     WorkMode::MODE0,
+    //     FrameFormat::STANDARD,
+    //     8,
+    //     0,
+    //     0,
+    //     0,
+    //     0,
+    //     Aitm::STANDARD,
+    //     Tmod::TRANS,
+    // );
+
+    // writeln!(stdout, "[sdc] creating sd/mmc instance").unwrap();
+    // let mut sd = SdMmcSpi::new(spi1, gpiohs0);
+    // let result = sd.init();
+    // writeln!(stdout, "[sdc] result = {:?}", &result).unwrap();
+
+    // writeln!(stdout, "[sdc] try performing an operation").unwrap();
+    // let spaces = sd.card_size_bytes().unwrap();
+    // writeln!(stdout, "[sdc] available spaces: {}", spaces).unwrap();
 
     loop {
         dvp.get_image();

@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 riscv = "0.6"
 riscv-rt = "0.8"
-embedded-sdmmc = "0.3.0"
-embedded-hal = "1.0.0-alpha.1"
+nb = "0.1.1"
+embedded-sdmmc = "0.3"
+embedded-hal = "0.2.3"
 k210-hal = { path = "../k210-hal" }

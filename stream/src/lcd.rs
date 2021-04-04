@@ -6,7 +6,7 @@ use k210_hal::prelude::*;
 use k210_hal::sleep::usleep;
 use k210_hal::spi::{Spi, Spi01};
 
-const CLOCK_RATE: u32 = 12_000_000;
+const CLOCK_RATE: u32 = 18_000_000;
 
 #[repr(u8)]
 #[allow(dead_code)]
