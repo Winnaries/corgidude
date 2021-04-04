@@ -1,13 +1,11 @@
 #![no_std]
 #![no_main]
 
-use core::str::FromStr;
-
-use embedded_sdmmc::{Controller, Mode, VolumeIdx};
 use k210_hal::dmac::{DmacChannel, DmacExt};
 use k210_hal::dvp::DvpExt;
 use k210_hal::prelude::*;
 use k210_hal::rtc::RtcExt;
+use k210_hal::sleep::usleep;
 use k210_hal::stdout::Stdout;
 use k210_hal::time::Hertz;
 use k210_hal::{dvp, pac, spi};
@@ -18,7 +16,6 @@ mod init;
 mod lcd;
 mod ov2640;
 mod panic;
-mod rtc_source;
 mod sdcard;
 
 // TODO
@@ -117,26 +114,12 @@ fn main() -> ! {
     /* Configuring real-time clock */
     let mut rtc = p.RTC.constrain(&mut sysctl.apb1);
     rtc.init(&clock);
-    rtc.timer_set(2020, 3, 21, 20, 47, 00, &clock).unwrap();
-    let rtc = rtc_source::RtcSource::new(rtc);
+    rtc.timer_set(2001, 5, 28, 20, 21, 00, &clock).unwrap();
 
-    let mut sd = Controller::new(sdcard, rtc);
+    usleep(20_500_000);
 
-    let mut volume = sd.get_volume(VolumeIdx(0)).unwrap();
-    let root = sd.open_root_dir(&volume).unwrap();
-    let central = sd.open_dir(&volume, &root, "1");
-
-    writeln!(stdout, "{:?}", &central).unwrap();
-
-    // let mut file = sd
-    //     .open_file_in_dir(&mut volume, &root, "test.txt", Mode::ReadWriteCreate)
-    //     .unwrap();
-
-    // let mut buffer: [u8; 100] = [0; 100];
-    // // sd.write(&mut volume, &mut file, buffer).unwrap();
-    // sd.read(&volume, &mut file, &mut buffer).unwrap();
-
-    // writeln!(stdout, "{:?}", buffer).unwrap();
+    let datetime = rtc.timer_get().unwrap();
+    writeln!(stdout, "{:?}", datetime).unwrap();
 
     loop {
         dvp.get_image();
